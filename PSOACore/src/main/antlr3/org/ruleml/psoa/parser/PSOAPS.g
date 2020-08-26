@@ -42,6 +42,7 @@ tokens
 
 @lexer::header {
     package org.ruleml.psoa.parser;
+    import static org.ruleml.psoa.utils.IOUtil.*;
 }
 
 @lexer::members {
@@ -466,13 +467,13 @@ curie returns [String fullIRI]
 // Comments and whitespace:
 WHITESPACE  :  (' '|'\t'|'\r'|'\n')+ { $channel = HIDDEN; } ;
 COMMENT : '%' ~('\n')* { $channel = HIDDEN; } ;
-MULTI_LINE_COMMENT :  '<!--' (options {greedy=false;} : .* ) '-->'
+MULTI_LINE_COMMENT :  '<!--' (options {greedy=false;} : .* ) '-->' 
                       { $channel=HIDDEN; }
-                      {
+                      { 
                         if (printDeprecatedCommentWarning) {
-                           System.out.println("Warning: XML-style comment blocks (delimited by '<!--'/'-->') are now deprecated and will be removed in a future release.");
+                           printErrln("Warning: XML-style comment blocks (delimited by '<!--'/'-->') are now deprecated and will be removed in a future release.");
                            printDeprecatedCommentWarning = false;
-                        }
+                        }                         
                       }
                    |  '/*' (options {greedy=false;} : .*) '*/' { $channel=HIDDEN; }	;
 
