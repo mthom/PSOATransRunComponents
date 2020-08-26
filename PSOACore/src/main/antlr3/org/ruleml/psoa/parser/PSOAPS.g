@@ -14,6 +14,7 @@ options
 tokens
 {
     PSOA;
+    OIDLESSEMBATOM;
     TUPLE;
     SLOT;
     LITERAL;
@@ -41,6 +42,10 @@ tokens
 
 @lexer::header {
     package org.ruleml.psoa.parser;
+}
+
+@lexer::members {
+    private boolean printDeprecatedCommentWarning = true;
 }
 
 @members
@@ -132,6 +137,16 @@ tokens
     		throw new PSOARuntimeException("Whitespace is expected before " + input.get(input.index()).getText());
     	}
     }
+    
+    public void checkNoPrecedingWhitespace() {
+    	if (input.get(input.index() - 1).getType() == WHITESPACE) {
+    		throw new PSOARuntimeException("There must be no whitespace before " + input.get(input.index()).getText());
+    	}
+    }
+
+    public boolean hasPrecedingWhitespace() {
+    	return (input.get(input.index() - 1).getType() == WHITESPACE);
+    }
 }
 
 document
@@ -210,7 +225,7 @@ formula returns [boolean isValidHead, boolean isAtomic]
     |   naf_formula
     |   atomic { $isAtomic = true; } -> atomic
     |   (external_term { $isValidHead = false; } -> external_term)
-        (psoa_rest { $isAtomic = true; } -> ^(PSOA $formula psoa_rest))?
+        ({!hasPrecedingWhitespace()}? psoa_rest { $isAtomic = true; } -> ^(PSOA $formula psoa_rest))?
     ;
 
 naf_formula
@@ -241,6 +256,7 @@ external_term
     -> ^(EXTERNAL ^(PSOA ^(INSTANCE simple_term) ^(TUPLE DEPSIGN["+"] term*)))
     ;
 
+
 internal_term returns [boolean isSimple]
 scope
 {
@@ -263,7 +279,18 @@ scope
     :   (simple_term -> simple_term)
         (LPAR (tuples_and_slots { $internal_term::inLTNF &= $tuples_and_slots.inLTNF; })? RPAR { $isSimple = false; }
          -> ^(PSOA ^(INSTANCE $internal_term) tuples_and_slots?))?
-        (psoa_rest { $isSimple = false; $internal_term::inLTNF &= $psoa_rest.inLTNF; } -> ^(PSOA $internal_term psoa_rest))*
+        ({ !hasPrecedingWhitespace() }? psoa_rest { $isSimple = false; $internal_term::inLTNF &= $psoa_rest.inLTNF; }
+         -> ^(PSOA $internal_term psoa_rest))*   
+    |   emb_atom_chain { $isSimple = false; $internal_term::inLTNF &= $emb_atom_chain.inLTNF; }         
+    ;   
+
+emb_atom_chain_rest
+    :   { !hasPrecedingWhitespace() }? psoa_rest
+    ; 
+
+emb_atom_chain returns [boolean inLTNF]
+    :   (psoa_rest {$emb_atom_chain.inLTNF = $psoa_rest.inLTNF; } -> ^(OIDLESSEMBATOM psoa_rest))
+        (emb_atom_chain_rest -> ^(PSOA $emb_atom_chain emb_atom_chain_rest))*
     ;
 
 psoa_rest returns [boolean inLTNF]
@@ -279,7 +306,7 @@ scope
 {
     $inLTNF = $psoa_rest::tsInLTNF;
 }
-    :   INSTANCE simple_term (LPAR (ts=tuples_and_slots { $psoa_rest::tsInLTNF &= $ts.inLTNF; })? RPAR)?
+    :   INSTANCE { checkNoPrecedingWhitespace(); } simple_term (LPAR (ts=tuples_and_slots { $psoa_rest::tsInLTNF &= $ts.inLTNF; })? RPAR)?
     -> ^(INSTANCE simple_term) tuples_and_slots?
     ;
 
@@ -439,7 +466,15 @@ curie returns [String fullIRI]
 // Comments and whitespace:
 WHITESPACE  :  (' '|'\t'|'\r'|'\n')+ { $channel = HIDDEN; } ;
 COMMENT : '%' ~('\n')* { $channel = HIDDEN; } ;
-MULTI_LINE_COMMENT :  '<!--' (options {greedy=false;} : .* ) '-->' { $channel=HIDDEN; } ;
+MULTI_LINE_COMMENT :  '<!--' (options {greedy=false;} : .* ) '-->'
+                      { $channel=HIDDEN; }
+                      {
+                        if (printDeprecatedCommentWarning) {
+                           System.out.println("Warning: XML-style comment blocks (delimited by '<!--'/'-->') are now deprecated and will be removed in a future release.");
+                           printDeprecatedCommentWarning = false;
+                        }
+                      }
+                   |  '/*' (options {greedy=false;} : .*) '*/' { $channel=HIDDEN; }	;
 
 // Keywords:
 DOCUMENT : 'Document' | 'RuleML' ;
