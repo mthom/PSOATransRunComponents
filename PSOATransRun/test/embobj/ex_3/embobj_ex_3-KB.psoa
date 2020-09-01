@@ -1,0 +1,71 @@
+RuleML(
+  Assert(
+
+
+    /*
+    Descriptor-embedded atoms
+    */
+
+    p1(#name->a) % slot name
+    p2(name->#filler) % slot filler
+    p3(+[#dep_tup_term]) % dependent tuple term
+    p4(-[#indep_tup_term]) % independent tuple term
+    p5(#imp_tup_term) % implicit dependent tuple term
+
+    p1_p2(#name->a name->#filler) % mix of p1, p2
+    p1_p3(#name->a +[#dep_tup_term]) % mix of p1, p3
+    p1_p4(#name->a -[#indep_tup_term]) % mix of p1, p4
+    p1_p5(#imp_tup_term #name->a) % mix of p1, p5
+
+    p1_p2_p3(#name->a name->#filler +[#dep_tup_term])
+    p1_p2_p4(#name->a name->#filler -[#indep_dup_term])
+    p1_p2_p5(#imp_tup_term #name->a name->#filler)
+    p2_p3_p4(#name->a name->#filler -[#indep_dup_term])
+    p2_p3_p5(#imp_tup_term name->#filler)
+    p3_p4_p5(+[#imp_tup_term #dep_tup_term] -[#indep_tup_term])
+
+    % with vars, other attached data.
+    Forall ?C (
+      v1(#atom(a b ?C))
+    )
+    Forall ?A ?C (
+      v2(#atom(?A b ?C)->filler)
+    )
+    Forall ?C (
+      v3(name->#atom(a b ?C name->filler))
+    )
+    Forall ?C (
+      v4(+[#dep_tup_term(?C)])
+    )
+
+
+    /*
+    OID-embedded atom
+    */
+
+    #p()#q() % empty bags of descriptors
+
+    /*
+    OID-embedded atoms with descriptor-embedded atoms
+    */
+
+    #p1(#name->a)#q() % slot name
+    #p2(name->#filler)#q() % slot filler
+    #p3(+[#dep_tup_term])#q() % dependent tuple term
+    #p4(-[#indep_tup_term])#q() % independent tuple term
+    #p5(#imp_tup_term)#q() % implicit dependent tuple term
+
+    #p1_p2(#name->a name->#filler)#q() % mix of p1, p2
+    #p1_p3(#name->a +[#dep_tup_term])#q() % mix of p1, p3
+    #p1_p4(#name->a -[#indep_tup_term])#q() % mix of p1, p4
+    #p1_p5(#imp_tup_term #name->a)#q() % mix of p1, p5
+
+    #p1_p2_p3(#name->a name->#filler +[#dep_tup_term])#q()
+    #p1_p2_p4(#name->a name->#filler -[#indep_dup_term])#q()
+    #p1_p2_p5(#imp_tup_term #name->a name->#filler)#q()
+    #p2_p3_p4(#name->a name->#filler -[#indep_dup_term])#q()
+    #p2_p3_p5(#imp_tup_term name->#filler)#q()
+    #p3_p4_p5(+[#imp_tup_term #dep_tup_term] -[#indep_tup_term])#q()
+    
+  )
+)
