@@ -242,7 +242,7 @@ atomic options {backtrack = true; memoize = true;}
     :   left_term=internal_term[false] ((EQUAL | SUBCLASS)^ term[false])
     |   left_term=internal_term[true]
     ;
-    
+
 term[boolean isAtomic]
     :   internal_term[isAtomic]
     |   external_term
@@ -257,7 +257,6 @@ external_term
     :   EXTERNAL LPAR simple_term LPAR (term[false] ({ checkPrecedingWhitespace(); } term[false])*)? RPAR RPAR
     -> ^(EXTERNAL ^(PSOA ^(INSTANCE simple_term) ^(TUPLE DEPSIGN["+"] term*)))
     ;
-
 
 internal_term[boolean isAtomic] returns [boolean isSimple]
 scope
@@ -290,6 +289,11 @@ emb_atom_chain_rest
     :   { !hasPrecedingWhitespace() }? psoa_rest
     ;
 
+/* 
+ * What in the following we will call "the chain o#a#b" of a top-level atom
+ * o#a#b(...) is its "initial part parsed as an OID-embedded atom o#a
+ * followed by the predicate b" of the corresponding oidless atom b(...).
+ */
 emb_atom_chain[boolean isAtomic] returns [boolean inLTNF]
 scope
 {
@@ -302,8 +306,8 @@ scope
     :   (head_link=psoa_rest {$emb_atom_chain.inLTNF = $psoa_rest.inLTNF; } 
          -> { isAtomic }? ^(PSOA psoa_rest)
          -> ^(OIDLESSEMBATOM psoa_rest))
-        ((emb_atom_chain_rest 
-          -> { $emb_atom_chain::firstLinkInChain && $isAtomic }? 
+        ((emb_atom_chain_rest
+          -> { $emb_atom_chain::firstLinkInChain && $isAtomic }?
              ^(PSOA ^(OIDLESSEMBATOM $head_link) emb_atom_chain_rest)
           -> ^(PSOA $emb_atom_chain emb_atom_chain_rest))
          { $emb_atom_chain::firstLinkInChain = false; })*
